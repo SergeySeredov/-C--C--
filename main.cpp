@@ -7,15 +7,13 @@
 
 using namespace std;
 
-// Функция для удаления лишних пробелов
 string removeExtraSpaces(const string& str) {
     string result;
     unique_copy(str.begin(), str.end(), back_inserter(result),
-        [](char a, char b) { return isspace(a) && isspace(b); });  //лямбда функция, возвращает true, если а и b пробелы
+        [](char a, char b) { return isspace(a) && isspace(b); });
     return result;
 }
 
-// Функция для нормализации имени макроса (замена спецсимволов на _)
 string normalizeMacroName(string str) {
     for (char& c : str) {
         if (!isalnum(c)) {
@@ -25,14 +23,12 @@ string normalizeMacroName(string str) {
     return str;
 }
 
-// Функция для обработки одного оператора C и преобразования его в макрос
 string translateToMacro(const string& code) {
     string processed = removeExtraSpaces(code);
     stringstream ss(processed);
     string token;
     vector<string> tokens;
     
-    // Улучшенное разбиение на токены с сохранением строковых литералов
     bool inString = false;
     string currentToken;
     for (char c : processed) {
@@ -54,12 +50,10 @@ string translateToMacro(const string& code) {
     
     if (tokens.empty()) return "";
     
-    // Обработка if-условий
     if (tokens[0] == "if") {
-        if (tokens.size() < 4) return code; // Неполный if
+        if (tokens.size() < 4) return code;
         
         string condition;
-        // Объединяем все токены условия (могут быть вложенные скобки)
         size_t i = 1;
         int bracketLevel = 0;
         while (i < tokens.size()) {
@@ -75,12 +69,10 @@ string translateToMacro(const string& code) {
             }
         }
         
-        // Убираем внешние скобки если они есть
         if (condition.front() == '(' && condition.back() == ')') {
             condition = condition.substr(1, condition.size() - 2);
         }
         
-        // Остаток - тело условия
         string body;
         for (; i < tokens.size(); ++i) {
             body += tokens[i] + " ";
@@ -89,27 +81,24 @@ string translateToMacro(const string& code) {
         string macroName = "IF_" + normalizeMacroName(condition);
         return "#define " + macroName + " if (" + condition + ") " + body;
     }
-    // Обработка return
     else if (tokens[0] == "return") {
         if (tokens.size() < 2) return code;
         string value;
         for (size_t i = 1; i < tokens.size(); ++i) {
             value += tokens[i] + " ";
         }
-        value = value.substr(0, value.size() - 1); // Удаляем последний пробел
+        value = value.substr(0, value.size() - 1);
         return "#define RETURN_" + normalizeMacroName(value) + " return " + value;
     }
-    // Обработка присваиваний
     else if (tokens.size() >= 3 && tokens[1] == "=") {
         string var = tokens[0];
         string value;
         for (size_t i = 2; i < tokens.size(); ++i) {
             value += tokens[i] + " ";
         }
-        value = value.substr(0, value.size() - 1); // Удаляем последний пробел
+        value = value.substr(0, value.size() - 1);
         return "#define SET_" + var + "_" + normalizeMacroName(value) + " " + var + " = " + value;
     }
-    // Обработка for-циклов
     else if (tokens[0] == "for") {
         if (tokens.size() < 5) return code;
         
@@ -138,7 +127,6 @@ string translateToMacro(const string& code) {
         return "#define " + macroName + " for (" + params + ") " + body;
     }
     
-    // Если не распознано, вернуть как есть
     return code;
 }
 
